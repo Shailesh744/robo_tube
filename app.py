@@ -8,6 +8,9 @@ from urllib.parse import urlparse, parse_qs
 import threading
 import time
 from pathlib import Path
+import tempfile
+import shutil
+import atexit
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -15,9 +18,17 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
-# Create downloads directory
-downloads_dir = Path("downloads")
-downloads_dir.mkdir(exist_ok=True)
+# Create temporary downloads directory
+temp_downloads_dir = Path(tempfile.mkdtemp(prefix="youtube_downloads_"))
+logging.info(f"Created temporary downloads directory: {temp_downloads_dir}")
+
+# Cleanup function to remove temp directory on exit
+def cleanup_temp_dir():
+    if temp_downloads_dir.exists():
+        shutil.rmtree(temp_downloads_dir, ignore_errors=True)
+        logging.info(f"Cleaned up temporary directory: {temp_downloads_dir}")
+
+atexit.register(cleanup_temp_dir)
 
 # Global variable to store download progress
 download_progress = {}
@@ -259,7 +270,7 @@ def download_video():
                     format_selector = 'best'
                 
                 ydl_opts = {
-                    'outtmpl': f'downloads/%(title)s.%(ext)s',
+                    'outtmpl': f'{temp_downloads_dir}/%(title)s.%(ext)s',
                     'progress_hooks': [ProgressHook(video_id)],
                     'format': format_selector,
                 }
@@ -332,7 +343,7 @@ def download_playlist():
                     format_selector = 'best'
                 
                 ydl_opts = {
-                    'outtmpl': f'downloads/%(playlist_title)s/%(title)s.%(ext)s',
+                    'outtmpl': f'{temp_downloads_dir}/%(playlist_title)s/%(title)s.%(ext)s',
                     'progress_hooks': [ProgressHook(playlist_id)],
                     'format': format_selector,
                 }
@@ -377,28 +388,28 @@ def get_download_progress(video_id):
 
 @app.route('/download_file/<path:filename>')
 def download_file(filename):
-    """Serve downloaded files"""
+    """Serve downloaded files from temporary storage"""
     try:
         # Handle nested paths for playlists
-        file_path = downloads_dir / filename
+        file_path = temp_downloads_dir / filename
         if file_path.exists() and file_path.is_file():
-            logging.info(f"Serving file: {filename}")
+            logging.info(f"Serving temporary file: {filename}")
             return send_file(file_path, as_attachment=True)
         else:
-            logging.error(f"File not found: {filename}")
-            return jsonify({'error': 'File not found'}), 404
+            logging.error(f"Temporary file not found: {filename}")
+            return jsonify({'error': 'File not found or expired'}), 404
     except Exception as e:
         logging.error(f"File download error: {str(e)}")
         return jsonify({'error': 'Download failed'}), 500
 
 @app.route('/list_downloads')
 def list_downloads():
-    """List all available downloads"""
+    """List all available downloads from temporary storage"""
     try:
         downloads = []
-        for file_path in downloads_dir.rglob('*'):
+        for file_path in temp_downloads_dir.rglob('*'):
             if file_path.is_file() and not file_path.name.startswith('.'):
-                relative_path = file_path.relative_to(downloads_dir)
+                relative_path = file_path.relative_to(temp_downloads_dir)
                 downloads.append({
                     'filename': file_path.name,
                     'path': str(relative_path),
@@ -411,6 +422,27 @@ def list_downloads():
     except Exception as e:
         logging.error(f"List downloads error: {str(e)}")
         return jsonify({'error': 'Failed to list downloads'}), 500
+
+@app.route('/clear_downloads', methods=['POST'])
+def clear_downloads():
+    """Clear all temporary downloads"""
+    try:
+        # Remove all files from temp directory
+        for file_path in temp_downloads_dir.rglob('*'):
+            if file_path.is_file():
+                file_path.unlink()
+            elif file_path.is_dir() and file_path != temp_downloads_dir:
+                shutil.rmtree(file_path, ignore_errors=True)
+        
+        # Clear progress tracking
+        global download_progress
+        download_progress = {}
+        
+        logging.info("Cleared all temporary downloads")
+        return jsonify({'success': True, 'message': 'All downloads cleared'})
+    except Exception as e:
+        logging.error(f"Clear downloads error: {str(e)}")
+        return jsonify({'error': 'Failed to clear downloads'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

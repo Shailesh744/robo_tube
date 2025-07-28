@@ -106,16 +106,24 @@ Preferred communication style: Simple, everyday language.
 - **Smart Format Detection**: Separate video and audio format groups in UI for better user experience
 - **FFmpeg Integration**: Added FFmpeg for high-quality audio conversion to MP3
 
+### Temporary Storage System (Latest Update)
+- **Temporary Downloads**: Implemented temporary file storage using system temp directories
+- **Auto-Clear on Refresh**: Downloads are automatically cleared when page is refreshed or reloaded
+- **Clear Downloads Button**: Manual clear option for users to remove all temporary files
+- **Session-Based Storage**: Files only persist for current browser session, not permanently saved
+- **Cleanup on Exit**: Automatic cleanup of temporary directories when application stops
+
 ### Improved User Interface
 - **Grouped Quality Selection**: Video and audio options are now properly categorized in dropdown menus
-- **File Size Display**: Shows estimated file sizes for each quality option when available
-- **Download Links**: Automatic download links appear when files are ready
+- **Temporary Storage Indicators**: Clear messaging about temporary storage behavior
+- **Download Management**: Enhanced UI for managing temporary downloads with clear all functionality
 - **Real-time Progress**: Enhanced progress tracking with speed and ETA information
 
 ### Technical Improvements
 - **Better Format Selection**: Enhanced yt-dlp format selectors for optimal quality matching
+- **Temporary File Management**: Using Python's tempfile module for secure temporary storage
 - **Error Handling**: Improved error messages and download state management
-- **File Serving**: Added secure file download routes for completed downloads
+- **Memory Management**: Automatic cleanup prevents storage buildup
 
 ## Technical Notes
 

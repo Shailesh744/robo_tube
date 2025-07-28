@@ -10,6 +10,7 @@ class YouTubeDownloader {
         const urlForm = document.getElementById('urlForm');
         const downloadVideoBtn = document.getElementById('downloadVideoBtn');
         const downloadPlaylistBtn = document.getElementById('downloadPlaylistBtn');
+        const clearDownloadsBtn = document.getElementById('clear-downloads');
 
         urlForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -23,6 +24,15 @@ class YouTubeDownloader {
         downloadPlaylistBtn.addEventListener('click', () => {
             this.downloadPlaylist();
         });
+        
+        if (clearDownloadsBtn) {
+            clearDownloadsBtn.addEventListener('click', () => {
+                this.clearDownloads();
+            });
+        }
+        
+        // Auto-clear downloads on page load (simulating refresh behavior)
+        this.clearDownloadsOnLoad();
     }
 
     showLoading() {
@@ -455,6 +465,65 @@ class YouTubeDownloader {
         while (downloadsList.children.length > 5) {
             downloadsList.removeChild(downloadsList.lastChild);
         }
+        
+        // Show the recent downloads section
+        document.getElementById('recent-downloads').classList.remove('d-none');
+    }
+
+    async clearDownloads() {
+        try {
+            const response = await fetch('/clear_downloads', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                // Clear the downloads list UI
+                const downloadsList = document.getElementById('downloads-list');
+                if (downloadsList) {
+                    downloadsList.innerHTML = '';
+                }
+                
+                // Hide the downloads section
+                document.getElementById('recent-downloads').classList.add('d-none');
+                
+                // Show success message
+                this.showTemporaryMessage('All temporary downloads cleared!', 'success');
+            } else {
+                this.showTemporaryMessage('Failed to clear downloads', 'error');
+            }
+        } catch (error) {
+            console.error('Clear downloads error:', error);
+            this.showTemporaryMessage('Failed to clear downloads', 'error');
+        }
+    }
+
+    clearDownloadsOnLoad() {
+        // Auto-clear downloads when page loads (simulating refresh behavior)
+        setTimeout(() => {
+            this.clearDownloads();
+        }, 500);
+    }
+
+    showTemporaryMessage(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        const alertClass = type === 'error' ? 'alert-danger' : type === 'success' ? 'alert-success' : 'alert-info';
+        alertDiv.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 3000);
     }
 }
 
