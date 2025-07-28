@@ -129,23 +129,31 @@ def get_video_info():
                     formats = []
                     audio_formats = []
                     
-                    # Get video formats
+                    # Debug: Log all available formats
+                    logging.debug(f"Total formats found: {len(info.get('formats', []))}")
+                    
+                    # Get video formats - include both combined and video-only streams
                     for f in info.get('formats', []):
-                        if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
+                        # Video formats (including video-only streams)
+                        if f.get('vcodec') != 'none':
                             quality = f.get('height')
-                            if quality:
+                            if quality and quality >= 144:  # Include 144p and above
+                                logging.debug(f"Found video format: {quality}p, codec: {f.get('vcodec')}, has_audio: {f.get('acodec') != 'none'}")
                                 formats.append({
                                     'format_id': f.get('format_id'),
                                     'quality': f"{quality}p",
                                     'ext': f.get('ext'),
                                     'filesize': f.get('filesize'),
                                     'fps': f.get('fps'),
-                                    'type': 'video'
+                                    'type': 'video',
+                                    'has_audio': f.get('acodec') != 'none'
                                 })
-                        elif f.get('acodec') != 'none' and f.get('vcodec') == 'none':
-                            # Audio-only formats
+                        
+                        # Audio-only formats
+                        if f.get('acodec') != 'none' and f.get('vcodec') == 'none':
                             abr = f.get('abr')
                             if abr:
+                                logging.debug(f"Found audio format: {int(abr)}kbps")
                                 audio_formats.append({
                                     'format_id': f.get('format_id'),
                                     'quality': f"{int(abr)}kbps",
@@ -234,9 +242,9 @@ def download_video():
                         abr = quality.replace('kbps', '')
                         format_selector = f'bestaudio[abr<={abr}]/bestaudio/best'
                 elif 'p' in quality:
-                    # Video format
+                    # Video format - combine video and audio for best quality
                     height = quality.replace('p', '')
-                    format_selector = f'best[height<={height}]/best'
+                    format_selector = f'best[height<={height}]+bestaudio/best[height<={height}]/best'
                 else:
                     format_selector = 'best'
                 
@@ -307,9 +315,9 @@ def download_playlist():
                         abr = quality.replace('kbps', '')
                         format_selector = f'bestaudio[abr<={abr}]/bestaudio/best'
                 elif 'p' in quality:
-                    # Video format
+                    # Video format - combine video and audio for best quality
                     height = quality.replace('p', '')
-                    format_selector = f'best[height<={height}]/best'
+                    format_selector = f'best[height<={height}]+bestaudio/best[height<={height}]/best'
                 else:
                     format_selector = 'best'
                 
