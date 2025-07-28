@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Run Flask App",
+			"command": "C:/Users/shail/Downloads/robo_youtube/robo_tube/.venv/Scripts/python.exe",
+			"args": [
+				"main.py"
+			],
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
