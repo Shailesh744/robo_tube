@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <header class="header-section py-4">
+            <div class="container">
+                <div class="text-center">
+                    <h1 class="display-4 fw-bold text-white mb-3">
+                        <i class="fab fa-youtube text-danger me-3"></i>
+                        YouTube Downloader
+                    </h1>
+                    <p class="lead text-white-50">Download YouTube videos and playlists in high quality</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="container my-5">
+            <!-- URL Input Section -->
+            <div class="row justify-content-center mb-5">
+                <div class="col-lg-8">
+                    <div class="card shadow-lg border-0">
+                        <div class="card-body p-4">
+                            <h4 class="card-title mb-4">
+                                <i class="fas fa-link me-2 text-primary"></i>
+                                Enter YouTube URL
+                            </h4>
+                            <form id="urlForm">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text bg-primary text-white">
+                                        <i class="fab fa-youtube"></i>
+                                    </span>
+                                    <input type="url" 
+                                           class="form-control form-control-lg" 
+                                           id="urlInput" 
+                                           placeholder="https://www.youtube.com/watch?v=... or playlist URL"
+                                           required>
+                                    <button class="btn btn-primary btn-lg px-4" type="submit" id="fetchBtn">
+                                        <i class="fas fa-search me-2"></i>
+                                        Fetch Info
+                                    </button>
+                                </div>
+                            </form>
+                            <div class="text-muted small">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Supports both individual videos and playlists
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center d-none">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Fetching video information...</p>
+            </div>
+
+            <!-- Error Display -->
+            <div id="errorDisplay" class="alert alert-danger d-none" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="errorMessage"></span>
+            </div>
+
+            <!-- Video Info Display -->
+            <div id="videoInfo" class="d-none">
+                <!-- Single Video Display -->
+                <div id="singleVideoInfo" class="d-none">
+                    <div class="card shadow-lg border-0 mb-4">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <img id="videoThumbnail" src="" class="img-fluid rounded-start h-100 object-fit-cover" alt="Video Thumbnail">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body h-100 d-flex flex-column">
+                                    <h5 class="card-title fw-bold" id="videoTitle"></h5>
+                                    <div class="video-meta mb-3">
+                                        <div class="row text-muted small">
+                                            <div class="col-sm-6">
+                                                <i class="fas fa-user me-1"></i>
+                                                <span id="videoUploader"></span>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <i class="fas fa-eye me-1"></i>
+                                                <span id="videoViews"></span> views
+                                            </div>
+                                        </div>
+                                        <div class="row text-muted small mt-1">
+                                            <div class="col-sm-6">
+                                                <i class="fas fa-clock me-1"></i>
+                                                <span id="videoDuration"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="card-text flex-grow-1" id="videoDescription"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quality Selection for Single Video -->
+                    <div class="card shadow border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-cog me-2 text-success"></i>
+                                Download Options
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="videoQuality" class="form-label">Select Quality:</label>
+                                    <select class="form-select" id="videoQuality">
+                                        <option value="best">Best Available</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3 d-flex align-items-end">
+                                    <button class="btn btn-success btn-lg w-100" id="downloadVideoBtn">
+                                        <i class="fas fa-download me-2"></i>
+                                        Download Video
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Playlist Display -->
+                <div id="playlistInfo" class="d-none">
+                    <div class="card shadow-lg border-0 mb-4">
+                        <div class="card-body">
+                            <h4 class="card-title">
+                                <i class="fas fa-list me-2 text-warning"></i>
+                                <span id="playlistTitle"></span>
+                            </h4>
+                            <div class="row text-muted">
+                                <div class="col-sm-6">
+                                    <i class="fas fa-user me-1"></i>
+                                    <span id="playlistUploader"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <i class="fas fa-video me-1"></i>
+                                    <span id="playlistVideoCount"></span> videos
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quality Selection for Playlist -->
+                    <div class="card shadow border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-cog me-2 text-success"></i>
+                                Download Playlist
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="playlistQuality" class="form-label">Select Quality:</label>
+                                    <select class="form-select" id="playlistQuality">
+                                        <option value="best">Best Available</option>
+                                        <option value="1080p">1080p</option>
+                                        <option value="720p">720p</option>
+                                        <option value="480p">480p</option>
+                                        <option value="360p">360p</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3 d-flex align-items-end">
+                                    <button class="btn btn-warning btn-lg w-100" id="downloadPlaylistBtn">
+                                        <i class="fas fa-download me-2"></i>
+                                        Download Playlist
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Playlist Videos -->
+                    <div class="card shadow border-0">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-video me-2"></i>
+                                Videos in Playlist
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="playlistVideos" class="row"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Progress -->
+            <div id="downloadProgress" class="d-none">
+                <div class="card shadow border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-download me-2 text-info"></i>
+                            Download Progress
+                        </h5>
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%">
+                                0%
+                            </div>
+                        </div>
+                        <div class="row text-muted small">
+                            <div class="col-sm-4">
+                                <i class="fas fa-tachometer-alt me-1"></i>
+                                Speed: <span id="downloadSpeed">-</span>
+                            </div>
+                            <div class="col-sm-4">
+                                <i class="fas fa-clock me-1"></i>
+                                ETA: <span id="downloadETA">-</span>
+                            </div>
+                            <div class="col-sm-4">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Status: <span id="downloadStatus">Starting...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer-section py-4 mt-5">
+        <div class="container text-center">
+            <p class="text-white-50 mb-0">
+                <i class="fas fa-heart text-danger me-1"></i>
+                YouTube Video Downloader - Download videos responsibly
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
