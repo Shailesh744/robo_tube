@@ -371,7 +371,8 @@ class YouTubeDownloader {
                 
                 // Show download link if available
                 if (progress.download_url) {
-                    this.showSuccessMessage(`Download completed successfully! <a href="${progress.download_url}" class="btn btn-sm btn-outline-success ms-2"><i class="fas fa-download me-1"></i>Download File</a>`);
+                    this.showSuccessMessage(`Download completed successfully! <a href="${progress.download_url}" class="btn btn-sm btn-outline-success ms-2" download><i class="fas fa-download me-1"></i>Download File</a>`);
+                    this.addToDownloadsList(progress.filename, progress.download_url);
                 } else {
                     this.showSuccessMessage('Download completed successfully!');
                 }
@@ -399,12 +400,61 @@ class YouTubeDownloader {
         
         document.getElementById('downloadProgress').appendChild(alertDiv);
         
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 5000);
+        // Don't auto-dismiss when there's a download link
+        if (!message.includes('download')) {
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    addToDownloadsList(filename, downloadUrl) {
+        // Create downloads history section if it doesn't exist
+        let downloadsSection = document.getElementById('downloadsHistory');
+        if (!downloadsSection) {
+            downloadsSection = document.createElement('div');
+            downloadsSection.id = 'downloadsHistory';
+            downloadsSection.className = 'mt-4';
+            downloadsSection.innerHTML = `
+                <div class="card shadow border-0">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-download me-2"></i>
+                            Recent Downloads
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="downloadsList"></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('downloadProgress').parentNode.appendChild(downloadsSection);
+        }
+
+        // Add download to the list
+        const downloadsList = document.getElementById('downloadsList');
+        const downloadItem = document.createElement('div');
+        downloadItem.className = 'download-item d-flex justify-content-between align-items-center p-2 border-bottom';
+        downloadItem.innerHTML = `
+            <div class="download-info">
+                <i class="fas fa-file-video me-2 text-primary"></i>
+                <span class="filename" title="${filename}">${filename.length > 40 ? filename.substring(0, 40) + '...' : filename}</span>
+                <small class="text-muted ms-2">${new Date().toLocaleTimeString()}</small>
+            </div>
+            <a href="${downloadUrl}" class="btn btn-sm btn-outline-primary" download>
+                <i class="fas fa-download me-1"></i>Download
+            </a>
+        `;
+        
+        // Add to top of list
+        downloadsList.insertBefore(downloadItem, downloadsList.firstChild);
+        
+        // Keep only last 5 downloads
+        while (downloadsList.children.length > 5) {
+            downloadsList.removeChild(downloadsList.lastChild);
+        }
     }
 }
 

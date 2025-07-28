@@ -292,3 +292,30 @@ body {
         transform: scale(1);
     }
 }
+
+/* Downloads History */
+.download-item {
+    transition: background-color 0.3s ease;
+}
+
+.download-item:hover {
+    background-color: #f8f9fa;
+}
+
+.download-item:last-child {
+    border-bottom: none !important;
+}
+
+.download-info .filename {
+    font-weight: 500;
+    color: #495057;
+}
+
+.download-info small {
+    font-size: 0.8rem;
+}
+
+#downloadsHistory .card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+}

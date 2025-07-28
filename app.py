@@ -52,8 +52,18 @@ class ProgressHook:
                 'status': 'finished',
                 'percent': 100,
                 'filename': filename,
-                'download_url': f'/download_file/{filename}'
+                'download_url': f'/download_file/{filename}',
+                'file_path': d['filename']
             }
+            logging.info(f"Download completed: {filename}")
+            # Keep the progress for 10 minutes
+            import threading
+            def cleanup_progress():
+                import time
+                time.sleep(600)  # 10 minutes
+                if self.video_id in download_progress:
+                    del download_progress[self.video_id]
+            threading.Thread(target=cleanup_progress, daemon=True).start()
         elif d['status'] == 'error':
             download_progress[self.video_id] = {
                 'status': 'error',
@@ -369,14 +379,38 @@ def get_download_progress(video_id):
 def download_file(filename):
     """Serve downloaded files"""
     try:
+        # Handle nested paths for playlists
         file_path = downloads_dir / filename
         if file_path.exists() and file_path.is_file():
+            logging.info(f"Serving file: {filename}")
             return send_file(file_path, as_attachment=True)
         else:
+            logging.error(f"File not found: {filename}")
             return jsonify({'error': 'File not found'}), 404
     except Exception as e:
         logging.error(f"File download error: {str(e)}")
         return jsonify({'error': 'Download failed'}), 500
+
+@app.route('/list_downloads')
+def list_downloads():
+    """List all available downloads"""
+    try:
+        downloads = []
+        for file_path in downloads_dir.rglob('*'):
+            if file_path.is_file() and not file_path.name.startswith('.'):
+                relative_path = file_path.relative_to(downloads_dir)
+                downloads.append({
+                    'filename': file_path.name,
+                    'path': str(relative_path),
+                    'size': file_path.stat().st_size,
+                    'modified': file_path.stat().st_mtime
+                })
+        
+        downloads.sort(key=lambda x: x['modified'], reverse=True)
+        return jsonify({'downloads': downloads})
+    except Exception as e:
+        logging.error(f"List downloads error: {str(e)}")
+        return jsonify({'error': 'Failed to list downloads'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
