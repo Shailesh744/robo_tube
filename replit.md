@@ -98,8 +98,27 @@ Preferred communication style: Simple, everyday language.
 - **Local File Storage**: Downloads stored locally (not suitable for distributed deployment)
 - **Threading Model**: Simple threading approach (may need queue system for high traffic)
 
+## Recent Changes (July 2025)
+
+### Enhanced Download Capabilities
+- **Multiple Quality Options**: Added support for all available video qualities (4K, 1440p, 1080p, 720p, 480p, 360p, 240p)
+- **Audio-Only Downloads**: Implemented MP3 extraction with multiple bitrate options (320kbps, 256kbps, 192kbps, 128kbps, 96kbps)
+- **Smart Format Detection**: Separate video and audio format groups in UI for better user experience
+- **FFmpeg Integration**: Added FFmpeg for high-quality audio conversion to MP3
+
+### Improved User Interface
+- **Grouped Quality Selection**: Video and audio options are now properly categorized in dropdown menus
+- **File Size Display**: Shows estimated file sizes for each quality option when available
+- **Download Links**: Automatic download links appear when files are ready
+- **Real-time Progress**: Enhanced progress tracking with speed and ETA information
+
+### Technical Improvements
+- **Better Format Selection**: Enhanced yt-dlp format selectors for optimal quality matching
+- **Error Handling**: Improved error messages and download state management
+- **File Serving**: Added secure file download routes for completed downloads
+
 ## Technical Notes
 
-The application follows a simple monolithic architecture suitable for small to medium-scale deployments. The codebase appears to be incomplete (the ProgressHook class definition is cut off in app.py), but the overall structure suggests a straightforward Flask application with real-time progress tracking capabilities.
+The application follows a simple monolithic architecture suitable for small to medium-scale deployments. The codebase is now complete with full ProgressHook implementation and comprehensive download functionality.
 
-Key architectural decisions prioritize simplicity and ease of deployment over scalability, making it ideal for personal use or small-scale deployments. The use of yt-dlp provides robust YouTube integration, while Bootstrap ensures a professional, responsive user interface.
+Key architectural decisions prioritize simplicity and ease of deployment over scalability, making it ideal for personal use or small-scale deployments. The use of yt-dlp provides robust YouTube integration with professional-grade format selection, while Bootstrap ensures a professional, responsive user interface that matches commercial video downloaders.
