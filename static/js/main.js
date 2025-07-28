@@ -145,12 +145,35 @@ class YouTubeDownloader {
         qualitySelect.innerHTML = '<option value="best">Best Available</option>';
         
         if (data.formats && data.formats.length > 0) {
-            data.formats.forEach(format => {
-                const option = document.createElement('option');
-                option.value = format.quality;
-                option.textContent = `${format.quality} (${format.ext.toUpperCase()})${format.filesize ? ' - ' + this.formatFileSize(format.filesize) : ''}`;
-                qualitySelect.appendChild(option);
-            });
+            // Group formats by type
+            const videoFormats = data.formats.filter(f => f.type === 'video');
+            const audioFormats = data.formats.filter(f => f.type === 'audio');
+            
+            // Add video formats
+            if (videoFormats.length > 0) {
+                const videoGroup = document.createElement('optgroup');
+                videoGroup.label = 'Video Quality';
+                videoFormats.forEach(format => {
+                    const option = document.createElement('option');
+                    option.value = format.quality;
+                    option.textContent = `${format.quality} (${format.ext.toUpperCase()})${format.filesize ? ' - ' + this.formatFileSize(format.filesize) : ''}`;
+                    videoGroup.appendChild(option);
+                });
+                qualitySelect.appendChild(videoGroup);
+            }
+            
+            // Add audio formats
+            if (audioFormats.length > 0) {
+                const audioGroup = document.createElement('optgroup');
+                audioGroup.label = 'Audio Only (MP3)';
+                audioFormats.forEach(format => {
+                    const option = document.createElement('option');
+                    option.value = format.quality;
+                    option.textContent = `${format.quality} MP3${format.filesize ? ' - ' + this.formatFileSize(format.filesize) : ''}`;
+                    audioGroup.appendChild(option);
+                });
+                qualitySelect.appendChild(audioGroup);
+            }
         }
 
         singleVideoInfo.classList.remove('d-none');
@@ -345,7 +368,13 @@ class YouTubeDownloader {
                 progressBar.className = 'progress-bar bg-success';
                 progressBar.style.width = '100%';
                 progressBar.textContent = '100%';
-                this.showSuccessMessage('Download completed successfully!');
+                
+                // Show download link if available
+                if (progress.download_url) {
+                    this.showSuccessMessage(`Download completed successfully! <a href="${progress.download_url}" class="btn btn-sm btn-outline-success ms-2"><i class="fas fa-download me-1"></i>Download File</a>`);
+                } else {
+                    this.showSuccessMessage('Download completed successfully!');
+                }
                 break;
             case 'error':
                 statusElement.textContent = 'Download Failed';

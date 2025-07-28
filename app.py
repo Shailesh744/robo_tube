@@ -47,10 +47,12 @@ class ProgressHook:
                     'eta': 'N/A'
                 }
         elif d['status'] == 'finished':
+            filename = Path(d['filename']).name
             download_progress[self.video_id] = {
                 'status': 'finished',
                 'percent': 100,
-                'filename': d['filename']
+                'filename': filename,
+                'download_url': f'/download_file/{filename}'
             }
         elif d['status'] == 'error':
             download_progress[self.video_id] = {
@@ -125,6 +127,9 @@ def get_video_info():
                 else:
                     # Handle single video
                     formats = []
+                    audio_formats = []
+                    
+                    # Get video formats
                     for f in info.get('formats', []):
                         if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
                             quality = f.get('height')
@@ -134,10 +139,22 @@ def get_video_info():
                                     'quality': f"{quality}p",
                                     'ext': f.get('ext'),
                                     'filesize': f.get('filesize'),
-                                    'fps': f.get('fps')
+                                    'fps': f.get('fps'),
+                                    'type': 'video'
+                                })
+                        elif f.get('acodec') != 'none' and f.get('vcodec') == 'none':
+                            # Audio-only formats
+                            abr = f.get('abr')
+                            if abr:
+                                audio_formats.append({
+                                    'format_id': f.get('format_id'),
+                                    'quality': f"{int(abr)}kbps",
+                                    'ext': f.get('ext'),
+                                    'filesize': f.get('filesize'),
+                                    'type': 'audio'
                                 })
                     
-                    # Remove duplicates and sort by quality
+                    # Remove duplicates and sort video formats by quality
                     seen = set()
                     unique_formats = []
                     for f in formats:
@@ -148,6 +165,20 @@ def get_video_info():
                     
                     unique_formats.sort(key=lambda x: int(x['quality'].replace('p', '')), reverse=True)
                     
+                    # Add audio formats
+                    audio_seen = set()
+                    unique_audio = []
+                    for f in audio_formats:
+                        quality_key = f['quality']
+                        if quality_key not in seen and quality_key not in audio_seen:
+                            audio_seen.add(quality_key)
+                            unique_audio.append(f)
+                    
+                    unique_audio.sort(key=lambda x: int(x['quality'].replace('kbps', '')), reverse=True)
+                    
+                    # Combine all formats
+                    all_formats = unique_formats + unique_audio
+                    
                     video_info = {
                         'type': 'video',
                         'id': info.get('id'),
@@ -157,7 +188,7 @@ def get_video_info():
                         'uploader': info.get('uploader'),
                         'view_count': info.get('view_count'),
                         'description': info.get('description', '')[:500] + '...' if info.get('description') and len(info.get('description')) > 500 else info.get('description', ''),
-                        'formats': unique_formats[:10]  # Limit to top 10 qualities
+                        'formats': all_formats[:20]  # Show more format options
                     }
                     
                     return jsonify(video_info)
@@ -192,11 +223,36 @@ def download_video():
         
         def download_thread():
             try:
+                # Determine format based on quality selection
+                if quality == 'best':
+                    format_selector = 'best'
+                elif 'kbps' in quality:
+                    # Audio only format
+                    format_selector = 'bestaudio/best'
+                    if quality != 'best':
+                        # Try to get specific audio quality
+                        abr = quality.replace('kbps', '')
+                        format_selector = f'bestaudio[abr<={abr}]/bestaudio/best'
+                elif 'p' in quality:
+                    # Video format
+                    height = quality.replace('p', '')
+                    format_selector = f'best[height<={height}]/best'
+                else:
+                    format_selector = 'best'
+                
                 ydl_opts = {
                     'outtmpl': f'downloads/%(title)s.%(ext)s',
                     'progress_hooks': [ProgressHook(video_id)],
-                    'format': f'best[height<={quality.replace("p", "")}]' if quality != 'best' else 'best',
+                    'format': format_selector,
                 }
+                
+                # If audio only, convert to mp3
+                if 'kbps' in quality:
+                    ydl_opts['postprocessors'] = [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': quality.replace('kbps', '') if quality != 'best' else '192',
+                    }]
                 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([url])
@@ -241,11 +297,35 @@ def download_playlist():
         
         def download_playlist_thread():
             try:
+                # Determine format based on quality selection
+                if quality == 'best':
+                    format_selector = 'best'
+                elif 'kbps' in quality:
+                    # Audio only format
+                    format_selector = 'bestaudio/best'
+                    if quality != 'best':
+                        abr = quality.replace('kbps', '')
+                        format_selector = f'bestaudio[abr<={abr}]/bestaudio/best'
+                elif 'p' in quality:
+                    # Video format
+                    height = quality.replace('p', '')
+                    format_selector = f'best[height<={height}]/best'
+                else:
+                    format_selector = 'best'
+                
                 ydl_opts = {
                     'outtmpl': f'downloads/%(playlist_title)s/%(title)s.%(ext)s',
                     'progress_hooks': [ProgressHook(playlist_id)],
-                    'format': f'best[height<={quality.replace("p", "")}]' if quality != 'best' else 'best',
+                    'format': format_selector,
                 }
+                
+                # If audio only, convert to mp3
+                if 'kbps' in quality:
+                    ydl_opts['postprocessors'] = [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': quality.replace('kbps', '') if quality != 'best' else '192',
+                    }]
                 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([url])
@@ -276,6 +356,19 @@ def download_playlist():
 def get_download_progress(video_id):
     progress = download_progress.get(video_id, {'status': 'not_found'})
     return jsonify(progress)
+
+@app.route('/download_file/<path:filename>')
+def download_file(filename):
+    """Serve downloaded files"""
+    try:
+        file_path = downloads_dir / filename
+        if file_path.exists() and file_path.is_file():
+            return send_file(file_path, as_attachment=True)
+        else:
+            return jsonify({'error': 'File not found'}), 404
+    except Exception as e:
+        logging.error(f"File download error: {str(e)}")
+        return jsonify({'error': 'Download failed'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

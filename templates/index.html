@@ -166,10 +166,22 @@
                                     <label for="playlistQuality" class="form-label">Select Quality:</label>
                                     <select class="form-select" id="playlistQuality">
                                         <option value="best">Best Available</option>
-                                        <option value="1080p">1080p</option>
-                                        <option value="720p">720p</option>
-                                        <option value="480p">480p</option>
-                                        <option value="360p">360p</option>
+                                        <optgroup label="Video Quality">
+                                            <option value="2160p">4K (2160p)</option>
+                                            <option value="1440p">1440p</option>
+                                            <option value="1080p">1080p</option>
+                                            <option value="720p">720p</option>
+                                            <option value="480p">480p</option>
+                                            <option value="360p">360p</option>
+                                            <option value="240p">240p</option>
+                                        </optgroup>
+                                        <optgroup label="Audio Only (MP3)">
+                                            <option value="320kbps">320kbps MP3</option>
+                                            <option value="256kbps">256kbps MP3</option>
+                                            <option value="192kbps">192kbps MP3</option>
+                                            <option value="128kbps">128kbps MP3</option>
+                                            <option value="96kbps">96kbps MP3</option>
+                                        </optgroup>
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3 d-flex align-items-end">
